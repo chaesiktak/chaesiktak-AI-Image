@@ -1,0 +1,13 @@
+train: /content/train
+val: /content/valid
+test: /content/test
+
+nc: 82
+names: ['abalone', 'adductor muscle', 'almond', 'anchovy', 'anglerfish', 'asparagus', 'avocado', 'bean', 'beef', 'bok_choy', 'bracken', 'broccoli', 'burdock', 'cabbage', 'calamari', 'carrot', 'chicken', 'chives', 'cod', 'conch', 'corn', 'crab', 'crab stick', 'croaker', 'cucumber', 'cutlassfish', 'dropwort', 'duck', 'eel', 'fish cake', 'fishball', 'flatfish', 'garlic', 'garlic_sprout', 'horsemackerel', 'kelp', 'kingcrab', 'kiwi', 'lamb', 'lemon', 'lettuce', 'lime', 'mackerel', 'mandarin', 'mushroom', 'octopus', 'olive', 'onion', 'oyster', 'paprica', 'pepper', 'pimento', 'pineapple', 'pollock', 'pork', 'potato', 'pumpkin', 'radish', 'red snapper', 'rice', 'robster', 'roe', 'salmon', 'saury', 'scallion', 'scallop', 'sea -mussel', 'sea bass', 'sea urchin', 'seashell', 'seaweed', 'sesame', 'shrimp', 'small octopus', 'spinach', 'sprout', 'squid', 'tomato', 'tuna', 'vegetable', 'webfoot octopus', 'yellowtail']
+
+roboflow:
+  workspace: physical-laborrch
+  project: vegetarian
+  version: 2
+  license: CC BY 4.0
+  url: https://universe.roboflow.com/physical-laborrch/vegetarian/dataset/2
