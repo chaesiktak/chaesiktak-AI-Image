@@ -1,18 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Segmentation</title>
+    <script>
+        async function uploadImage(event) {
+            event.preventDefault();
+            let imageUrl = document.getElementById("imageUrl").value;
+
+            const response = await fetch("/api/segment", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({ image_url: imageUrl })
+            });
+
+            const result = await response.json();
+            document.getElementById("results").innerText = JSON.stringify(result, null, 2);
+        }
+    </script>
 </head>
 <body>
-    <h1>Upload Image for Segmentation</h1>
-    <form action="/" method="post" enctype="multipart/form-data">
-        <input type="file" name="file" accept="image/*" required>
+    <h1>Upload Image URL</h1>
+    <form onsubmit="uploadImage(event)">
+        <input type="text" id="imageUrl" name="image_url" placeholder="Enter image URL" required>
         <button type="submit">Upload</button>
     </form>
 
-    {% if segmentations %}
-        <h2>Ingredient:</h2>
-        <ul>
-            {% for segmentation in segmentations %}
-                <li>{{ segmentation }}</li>
-            {% endfor %}
-        </ul>
-    {% endif %}
+    <h2>Results:</h2>
+    <pre id="results"></pre>
 </body>
 </html>

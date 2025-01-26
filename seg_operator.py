@@ -1,7 +1,10 @@
-from flask import Flask, request, render_template
+from flask import Flask, request, render_template, jsonify
 import onnxruntime as ort
 import numpy as np
 import cv2
+from collections import Counter
+import requests
+
 
 app = Flask(__name__)
 
@@ -17,8 +20,11 @@ def load_class_names(class_file):
 class_names = load_class_names(class_names_path)
 
 
-def preprocess_image(image_path, input_size=640):
-    image = cv2.imread(image_path)
+def preprocess_image_from_url(image_url, input_size=640):
+    response = requests.get(image_url, stream=True)
+    response.raise_for_status()
+    image_array = np.asarray(bytearray(response.content), dtype=np.uint8)
+    image = cv2.imdecode(image_array, cv2.IMREAD_COLOR)
     image_resized = cv2.resize(image, (input_size, input_size))
     image = cv2.cvtColor(image_resized, cv2.COLOR_BGR2RGB).astype(np.float32) / 255.0
     image = np.transpose(image, (2, 0, 1))  # HWC -> CHW
@@ -26,35 +32,46 @@ def preprocess_image(image_path, input_size=640):
     return image
 
 
-@app.route('/', methods=['GET', 'POST'])
+@app.route('/')
 def index():
-    if request.method == 'POST':
-        file = request.files['file']
-        if file:
-            image_path = "uploaded_image.jpg"  #
-            file.save(image_path)
-            input_tensor = preprocess_image(image_path)
+    return render_template('index.html')
 
-            session = ort.InferenceSession(model_path)
-            input_name = session.get_inputs()[0].name
-            output_name = session.get_outputs()[0].name
-            
-            outputs = session.run([output_name], {input_name: input_tensor})
-            segmentations = outputs[0][0]
-            confidence_threshold = 0.01  # 임계값
-
-            segmented_objects = []
-            for segmentation in segmentations:
-                confidence = segmentation[4]  # 신뢰도 값 5번째 요소
-                if confidence > confidence_threshold:
-                    class_probs = segmentation[5:5 + len(class_names)]  # 클래스 개수 만큼 신뢰도 값
-                    class_id = np.argmax(class_probs)  # 신뢰도 가장 높은 클래스
-                    class_label = class_names[class_id]
-                    segmented_objects.append(f"Class: {class_label}, Confidence: {confidence:.2f}")
-
-            return render_template('index.html', segmentations = segmented_objects)
+@app.route('/api/segment', methods=['POST'])
+def segment():
+    data = request.get_json()
+    if 'image_url' not in data:
+        return jsonify({"error": "No image URL provided"}), 400
     
-    return render_template('index.html', segmentations = None)
+    image_url = data['image_url']
+    try:
+        input_tensor = preprocess_image_from_url(image_url)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
+
+    session = ort.InferenceSession(model_path)
+    input_name = session.get_inputs()[0].name
+    output_name = session.get_outputs()[0].name
+    
+    outputs = session.run([output_name], {input_name: input_tensor})
+    segmentations = outputs[0][0]
+    confidence_threshold = 0.01
+
+    segmentation_objects = []
+    segmentation_classes = []
+    for segmentation in segmentations:
+        confidence = segmentation[4]
+        if confidence > confidence_threshold:
+            class_probs = segmentation[5:5 + len(class_names)]
+            class_id = np.argmax(class_probs)
+            class_label = class_names[class_id]
+            segmentation_objects.append({"class": class_label, "confidence": float(confidence)})
+            segmentation_classes.append(class_label)
+
+    class_counts = Counter(segmentation_classes)
+    count_summary = {cls: count for cls, count in class_counts.items()}
+
+    return jsonify({"segmentations": segmentation_objects, "counts": count_summary})
+
 
 if __name__ == '__main__':
     app.run(debug=True)
